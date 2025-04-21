@@ -29,20 +29,28 @@ const mockEmailService = {
 const createTransporter = () => {
   console.log('Creating email transporter...');
   console.log('Email configuration:', {
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
     hasUser: !!process.env.EMAIL_USER,
     hasPassword: !!process.env.EMAIL_PASSWORD,
     hasFrontendUrl: !!process.env.FRONTEND_URL,
     nodeEnv: process.env.NODE_ENV
   });
 
+  // Always use mock service in development or if no credentials
+  if (process.env.NODE_ENV === 'development' || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.warn('Using mock email service');
+    return mockEmailService;
+  }
+
+  // Production email configuration
+  console.log('Using Gmail configuration');
   return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
+    service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
+      pass: process.env.EMAIL_PASSWORD,
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   });
 };
@@ -50,21 +58,68 @@ const createTransporter = () => {
 // Send email function
 export const sendEmail = async (to, subject, html) => {
   try {
+    console.log('Preparing to send email:', { to, subject });
+    
+    if (!process.env.FRONTEND_URL) {
+      console.error('FRONTEND_URL is not set in environment variables');
+      throw new Error('Frontend URL is not configured');
+    }
+
     const transporter = createTransporter();
     
     const mailOptions = {
       from: process.env.EMAIL_USER || 'test@example.com',
       to,
       subject,
-      html
+      html,
     };
+
+    console.log('Sending email with options:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject
+    });
 
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent successfully:', info.messageId);
-    return info;
+    
+    // Always return a consistent response in development mode
+    if (process.env.NODE_ENV === 'development') {
+      return {
+        success: true,
+        message: 'Mock email sent successfully',
+        messageId: 'mock-message-id',
+        previewUrl: 'https://example.com/mock-email-preview'
+      };
+    }
+
+    return { 
+      success: true, 
+      message: 'Email sent successfully',
+      messageId: info.messageId,
+      previewUrl: info.previewUrl
+    };
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw error;
+    console.error('Email sending error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      to,
+      subject
+    });
+    
+    // In development mode, return mock response even on error
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Development mode: Returning mock response despite error');
+      return {
+        success: true,
+        message: 'Mock email sent successfully',
+        messageId: 'mock-message-id',
+        previewUrl: 'https://example.com/mock-email-preview'
+      };
+    }
+    
+    throw new Error('Failed to send email: ' + error.message);
   }
 };
 
@@ -96,6 +151,10 @@ export const sendConfirmationEmail = async (email, verificationUrl) => {
 // Send password reset email
 export const sendPasswordResetEmail = async (email, resetToken, userType) => {
   try {
+    if (!process.env.FRONTEND_URL) {
+      throw new Error('FRONTEND_URL is not configured');
+    }
+
     // Create reset URL with encoded token
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${encodeURIComponent(resetToken)}&type=${userType}`;
     
@@ -113,7 +172,7 @@ export const sendPasswordResetEmail = async (email, resetToken, userType) => {
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_USER || 'test@example.com',
       to: email,
       subject: 'Password Reset Request',
       html: `
@@ -125,24 +184,17 @@ export const sendPasswordResetEmail = async (email, resetToken, userType) => {
       `
     };
 
-    // In development mode, just log the reset URL and return
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Development mode - mock email sent:', {
-        to: email,
-        subject: mailOptions.subject,
-        resetUrl: resetUrl
-      });
-      return { 
-        messageId: 'mock-message-id',
-        resetUrl: resetUrl // Include the reset URL in the response
-      };
-    }
-
     const info = await transporter.sendMail(mailOptions);
     console.log('Password reset email sent successfully:', info.messageId);
+    
+    // In development mode, include the reset URL in the response
+    if (process.env.NODE_ENV === 'development') {
+      return { ...info, resetUrl };
+    }
+    
     return info;
   } catch (error) {
     console.error('Error sending password reset email:', error);
-    throw error;
+    throw new Error('Failed to send password reset email. Please try again later.');
   }
 }; 

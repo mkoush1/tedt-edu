@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../services/api";
+import {
+  isValidEmail,
+  isValidPassword,
+  validationMessages,
+} from "../utils/validation";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -11,30 +16,21 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePassword = (password) => {
-    return password.length >= 6;
-  };
-
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Email validation
     if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
+      newErrors.email = validationMessages.email.required;
+    } else if (!isValidEmail(formData.email)) {
+      newErrors.email = validationMessages.email.invalid;
     }
 
     // Password validation
     if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be at least 6 characters long";
+      newErrors.password = validationMessages.password.required;
+    } else if (!isValidPassword(formData.password)) {
+      newErrors.password = validationMessages.password.invalid;
     }
 
     setErrors(newErrors);
@@ -52,7 +48,7 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -61,131 +57,160 @@ const LoginPage = () => {
 
     try {
       const response = await authService.login(formData);
-      console.log('Login response:', response); // Debug log
-      
+
       if (response.token) {
-        // Store the token and user data
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('userData', JSON.stringify(response.user));
-        localStorage.setItem('userType', response.user.role || 'user'); // Store user type
-        
-        // Redirect based on user role
-        const dashboardPath = response.user.role === 'supervisor' 
-          ? '/supervisor-dashboard' 
-          : '/user-dashboard';
-        
-        console.log('Redirecting to:', dashboardPath); // Debug log
+        // Store authentication data
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("userData", JSON.stringify(response.user));
+        localStorage.setItem("userType", response.user.role || "student");
+        localStorage.setItem("userId", response.user.id); // Use id instead of userId
+
+        const dashboardPath =
+          response.user.role === "supervisor"
+            ? "/supervisor-dashboard"
+            : "/user-dashboard";
+
         navigate(dashboardPath, { replace: true });
       } else {
         setErrors({ submit: "Login failed. Please try again." });
       }
     } catch (err) {
-      console.error('Login error:', err); // Debug log
-      setErrors({ submit: err.response?.data?.message || "Invalid email or password" });
+      setErrors({
+        submit: err.response?.data?.message || "Invalid email or password",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow">
-        <div className="flex flex-col items-center">
-          <img src="/eduSoft_logo.png" alt="EduSoft Logo" className="h-12 w-auto mb-6" />
-          <h1 className="text-center text-3xl font-extrabold text-gray-900">
-            Welcome Back
-          </h1>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Log in to continue your learning journey and access your personalized dashboard.
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {errors.submit && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{errors.submit}</div>
-            </div>
-          )}
-
-          {/* Email Input */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email Address
-            </label>
-            <div className="mt-1">
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className={`appearance-none block w-full px-3 py-2 border ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+    <div className="min-h-screen flex">
+      {/* Left Panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#592538] p-12 flex-col justify-between">
+        <div>
+          <div className="flex items-center space-x-4">
+            <Link to="/">
+              <img
+                src="/eduSoft_logo.png"
+                alt="EduSoft Logo"
+                className="h-12 w-auto"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Password Input */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <div className="mt-1">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className={`appearance-none block w-full px-3 py-2 border ${
-                  errors.password ? 'border-red-300' : 'border-gray-300'
-                } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Forgot Password Link */}
-          <div className="flex items-center justify-end">
-            <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Forgot Password?
-              </Link>
-            </div>
-          </div>
-
-          {/* Login Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-          </div>
-
-          {/* Sign Up Link */}
-          <div className="text-sm text-center">
-            <span className="text-gray-600">Don't have an account? </span>
-            <Link to="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Sign up
             </Link>
+            <Link to="/">
+              <img src="/logo-02.png" alt="ASPU Logo" className="h-12 w-auto" />
+            </Link>
+            <span className="text-[#F7F4F3] text-3xl font-bold">EduSoft</span>
           </div>
-        </form>
+          <div className="mt-16">
+            <h2 className="text-[#F7F4F3] text-4xl font-light leading-tight">
+              Your personalized learning
+              <br />
+              journey continues here.
+            </h2>
+            <p className="text-[#F7F4F3]/80 text-xl mt-6 leading-relaxed">
+              Log in to access your soft
+              <br />
+              skills assessments, track
+              <br />
+              progress, and discover
+              <br />
+              tailored resources to help you
+              <br />
+              excel.
+            </p>
+          </div>
+          <Link to="/" className="block w-fit">
+            <button className="mt-8 px-8 py-3 bg-white text-[#5B2333] rounded-full text-lg font-medium hover:bg-gray-100 transition-colors">
+              Read More
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Right Panel */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+        <div className="w-full max-w-md">
+          <div className="bg-[#592538] rounded-2xl p-8 w-full">
+            <h1 className="text-[#F7F4F3] text-3xl font-bold mb-2">
+              Welcome Back!
+            </h1>
+            <p className="text-[#F7F4F3]/70 mb-8">
+              Choose one of the option to go
+            </p>
+
+            {errors.submit && (
+              <div className="mb-4 p-3 rounded bg-red-100/10">
+                <p className="text-red-200 text-sm">{errors.submit}</p>
+              </div>
+            )}
+
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Mohammad@asu.com"
+                  className="w-full px-4 py-3 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-white/50"
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-200">{errors.email}</p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Password"
+                  className="w-full px-4 py-3 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-white/50"
+                />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-200">{errors.password}</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-white/80 hover:underline"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-white text-[#5B2333] rounded-lg font-medium hover:bg-gray-100 transition-colors"
+              >
+                {loading ? "Signing in..." : "Log in"}
+              </button>
+
+              <div className="text-center text-[#F7F4F3]">
+                <span className="opacity-70">Don't have account? </span>
+                <Link
+                  to="/signup"
+                  className="font-medium text-[#F7F4F3] hover:underline"
+                >
+                  Sign up now
+                </Link>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default LoginPage; 
+export default LoginPage;

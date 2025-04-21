@@ -85,7 +85,12 @@ export const authService = {
   // User authentication
   userSignup: async (userData) => {
     try {
-      const response = await api.post('/auth/user/signup', userData);
+      const response = await api.post('/auth/user/signup', {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role || 'student'
+      });
       return response.data;
     } catch (error) {
       console.error('User signup error:', error);
@@ -139,29 +144,61 @@ export const authService = {
   // Password reset
   forgotPassword: async (email, userType) => {
     try {
-      const endpoint = userType === 'supervisor' ? '/auth/supervisor/forgot-password' : '/auth/user/forgot-password';
-      const response = await api.post(endpoint, { email });
+      // Validate email format before sending request
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Ensure userType is lowercase
+      const normalizedUserType = userType.toLowerCase();
+
+      const response = await api.post('/auth/forgot-password', {
+        email: email.trim().toLowerCase(),
+        userType: normalizedUserType
+      });
+
+      if (!response.data) {
+        throw new Error('No response received from server');
+      }
+
       return response.data;
     } catch (error) {
       console.error('Forgot password error:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to process password reset request. Please try again.');
       }
-      throw error;
     }
   },
 
   resetPassword: async (token, newPassword, userType) => {
     try {
-      const endpoint = userType === 'supervisor' ? '/auth/supervisor/reset-password' : '/auth/user/reset-password';
-      const response = await api.post(endpoint, { token, password: newPassword });
+      // Ensure token is properly decoded
+      const decodedToken = decodeURIComponent(token);
+
+      const response = await api.post('/auth/reset-password', {
+        token: decodedToken,
+        password: newPassword,
+        userType: userType.toLowerCase()
+      });
+
+      if (!response.data) {
+        throw new Error('No response data received');
+      }
+
       return response.data;
     } catch (error) {
       console.error('Reset password error:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Error processing password reset request');
       }
-      throw error;
     }
   },
 
@@ -188,6 +225,23 @@ const supervisorService = {
   getSupervisors: () => api.get('/supervisors'),
   getSupervisor: (id) => api.get(`/supervisors/${id}`),
 };
+
+export const getAssessmentResults = async (assessmentType) => {
+  if (assessmentType === 'leadership') {
+    return api.get('/assessments/results/leadership');
+  }
+  return api.get(`/assessments/results/${assessmentType}`);
+};
+
+export const submitAssessment = async (assessmentType, answers) => {
+  if (assessmentType === 'leadership') {
+    return api.post('/assessments/submit/leadership', { answers });
+  }
+  return api.post(`/assessments/submit/${assessmentType}`, { answers });
+};
+
+// Export the signup function
+export const signup = authService.userSignup;
 
 export { userService, supervisorService };
 

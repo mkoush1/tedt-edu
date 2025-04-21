@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs';
 const router = express.Router();
 
 // Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
+export const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -64,44 +64,103 @@ router.get('/me', verifyToken, async (req, res) => {
 // User Signup
 router.post('/user/signup', async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     console.log('User signup attempt:', email);
 
     // Validate required fields
-    if (!fullName || !email || !password) {
+    if (!name || !email || !password) {
       return res.status(400).json({ 
         message: 'Missing required fields',
         details: {
-          fullName: !fullName ? 'Full name is required' : undefined,
+          name: !name ? 'Name is required' : undefined,
           email: !email ? 'Email is required' : undefined,
           password: !password ? 'Password is required' : undefined
         }
       });
     }
 
-    // Check if user exists
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        message: 'Invalid email format',
+        field: 'email'
+      });
+    }
+
+    // If role is instructor, create in Supervisor collection
+    if (role === 'instructor') {
+      // Check if supervisor exists
+      const existingSupervisor = await Supervisor.findOne({ Email: email.toLowerCase() });
+      if (existingSupervisor) {
+        return res.status(400).json({ message: 'Instructor already exists' });
+      }
+
+      // Create new supervisor
+      const newSupervisor = new Supervisor({
+        Username: name.trim(),
+        Email: email.toLowerCase().trim(),
+        Password: password
+      });
+
+      await newSupervisor.save();
+      console.log('New instructor created:', newSupervisor.Email);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: newSupervisor._id, role: 'supervisor' },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
+      );
+
+      return res.status(201).json({
+        message: 'Instructor created successfully',
+        token,
+        user: {
+          id: newSupervisor._id,
+          name: newSupervisor.Username,
+          email: newSupervisor.Email,
+          role: 'supervisor'
+        }
+      });
+    }
+
+    // For non-instructor roles, create in User collection
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({ 
-        message: 'User already exists',
-        details: 'An account with this email already exists'
-      });
+      return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create new user
     const newUser = new User({
-      fullName: fullName.trim(),
-      email: email.toLowerCase().trim(),
+      name,
+      email: email.toLowerCase(),
       password,
-      role: 'User'
+      role: role || 'student',
+      softSkillScore: 0,
+      progress: 0,
+      userId: Math.floor(100000 + Math.random() * 900000)
     });
+
+    // Validate the user document before saving
+    const validationError = newUser.validateSync();
+    if (validationError) {
+      console.error('Validation error:', validationError);
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: Object.values(validationError.errors).map(err => ({
+          field: err.path,
+          message: err.message
+        }))
+      });
+    }
 
     await newUser.save();
     console.log('New user created:', newUser.email);
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: newUser._id, role: 'user' },
+      { userId: newUser._id, role: newUser.role },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
@@ -111,9 +170,9 @@ router.post('/user/signup', async (req, res) => {
       token,
       user: {
         id: newUser._id,
-        fullName: newUser.fullName,
+        name: newUser.name,
         email: newUser.email,
-        role: 'user'
+        role: newUser.role
       }
     });
   } catch (error) {
@@ -152,11 +211,13 @@ router.post('/supervisor/signup', async (req, res) => {
       });
     }
 
-    // Create new supervisor
+    // Create new supervisor with auto-generated IDs
     const newSupervisor = new Supervisor({
       Username: fullName.trim(),
       Email: email.toLowerCase().trim(),
-      Password: password
+      Password: password,
+      UserID: Math.floor(100000 + Math.random() * 900000),
+      supervisorId: Math.floor(100000 + Math.random() * 900000)
     });
 
     await newSupervisor.save();
@@ -208,12 +269,12 @@ router.post('/user/login', async (req, res) => {
     console.log('User found:', {
       id: user._id,
       email: user.email,
-      fullName: user.fullName,
+      name: user.name,
       hasPassword: !!user.password,
       passwordLength: user.password ? user.password.length : 0
     });
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await user.matchPassword(password);
     console.log('Final password comparison result:', isMatch);
 
     if (!isMatch) {
@@ -225,7 +286,7 @@ router.post('/user/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, role: 'user' },
+      { userId: user._id, role: user.role || 'student' },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
@@ -236,9 +297,9 @@ router.post('/user/login', async (req, res) => {
       token,
       user: {
         id: user._id,
-        fullName: user.fullName,
+        name: user.name,
         email: user.email,
-        role: 'user'
+        role: user.role || 'student'
       }
     });
   } catch (error) {
@@ -275,8 +336,8 @@ router.post('/supervisor/login', async (req, res) => {
       id: supervisor._id,
       email: supervisor.Email,
       username: supervisor.Username,
-      hasPassword: !!supervisor.password,
-      passwordLength: supervisor.password ? supervisor.password.length : 0
+      hasPassword: !!supervisor.Password,
+      passwordLength: supervisor.Password ? supervisor.Password.length : 0
     });
 
     const isMatch = await supervisor.comparePassword(password);
@@ -320,27 +381,8 @@ router.post('/supervisor/login', async (req, res) => {
 router.post('/user/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    console.log('User forgot password request:', email);
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(404).json({ 
-        message: 'User not found',
-        details: 'No account found with this email address'
-      });
-    }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetToken = resetToken;
-    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
-    await user.save();
-
-    await sendPasswordResetEmail(user.email, resetToken, 'user');
-
-    res.json({ 
-      message: 'Password reset email sent',
-      details: 'Please check your email for password reset instructions'
-    });
+    // Redirect to unified forgot password route
+    res.redirect(307, '/auth/forgot-password', { body: { email, userType: 'user' } });
   } catch (error) {
     console.error('User forgot password error:', error);
     res.status(500).json({ 
@@ -354,93 +396,14 @@ router.post('/user/forgot-password', async (req, res) => {
 router.post('/supervisor/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    console.log('Supervisor forgot password request:', email);
-
-    const supervisor = await Supervisor.findOne({ Email: email.toLowerCase() });
-    if (!supervisor) {
-      return res.status(404).json({ 
-        message: 'Supervisor not found',
-        details: 'No account found with this email address'
-      });
-    }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    supervisor.resetToken = resetToken;
-    supervisor.resetTokenExpiry = Date.now() + 3600000; // 1 hour
-    await supervisor.save();
-
-    await sendPasswordResetEmail(supervisor.Email, resetToken, 'supervisor');
-
-    res.json({ 
-      message: 'Password reset email sent',
-      details: 'Please check your email for password reset instructions'
-    });
+    // Redirect to unified forgot password route
+    res.redirect(307, '/auth/forgot-password', { body: { email, userType: 'supervisor' } });
   } catch (error) {
     console.error('Supervisor forgot password error:', error);
     res.status(500).json({ 
       message: 'Error sending reset email',
       details: 'An error occurred while processing your request'
     });
-  }
-});
-
-// User Reset Password
-router.post('/user/reset-password', async (req, res) => {
-  try {
-    const { token, password } = req.body;
-
-    if (!token || !password) {
-      return res.status(400).json({ message: 'Token and password are required' });
-    }
-
-    const user = await User.findOne({
-      resetToken: token,
-      resetTokenExpiry: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired reset token' });
-    }
-
-    user.password = password;
-    user.resetToken = undefined;
-    user.resetTokenExpiry = undefined;
-    await user.save();
-
-    res.json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error('User reset password error:', error);
-    res.status(500).json({ message: 'Error resetting password' });
-  }
-});
-
-// Supervisor Reset Password
-router.post('/supervisor/reset-password', async (req, res) => {
-  try {
-    const { token, password } = req.body;
-
-    if (!token || !password) {
-      return res.status(400).json({ message: 'Token and password are required' });
-    }
-
-    const supervisor = await Supervisor.findOne({
-      resetToken: token,
-      resetTokenExpiry: { $gt: Date.now() }
-    });
-
-    if (!supervisor) {
-      return res.status(400).json({ message: 'Invalid or expired reset token' });
-    }
-
-    supervisor.Password = password;
-    supervisor.resetToken = undefined;
-    supervisor.resetTokenExpiry = undefined;
-    await supervisor.save();
-
-    res.json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error('Supervisor reset password error:', error);
-    res.status(500).json({ message: 'Error resetting password' });
   }
 });
 
@@ -452,26 +415,47 @@ router.post('/forgot-password', async (req, res) => {
 
     // Find user by email and userType
     const UserModel = userType === 'supervisor' ? Supervisor : User;
-    const user = await UserModel.findOne({ email });
+    const emailField = userType === 'supervisor' ? 'Email' : 'email';
+    
+    // Create query object dynamically
+    const query = {};
+    query[emailField] = email.toLowerCase();
+    
+    const user = await UserModel.findOne(query);
+    console.log('User found:', user ? 'Yes' : 'No');
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ 
+        message: 'User not found',
+        details: 'No account found with this email address'
+      });
     }
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = Date.now() + 3600000; // 1 hour
+    console.log('Generated reset token:', resetToken);
 
     // Update user with reset token
     user.resetToken = resetToken;
-    user.resetTokenExpiry = resetTokenExpiry;
+    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
     await user.save();
+    console.log('Reset token saved for user');
 
     // Send reset email
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${encodeURIComponent(resetToken)}&type=${userType}`;
     
     // In development, return the reset URL
     if (process.env.NODE_ENV === 'development') {
+      console.log('\n\n');
+      console.log('==================================================');
+      console.log('🚀 PASSWORD RESET LINK (COPY THIS URL):');
+      console.log('==================================================');
+      console.log(resetUrl);
+      console.log('==================================================');
+      console.log('📧 Email:', email);
+      console.log('👤 User Type:', userType);
+      console.log('==================================================\n\n');
+      
       return res.status(200).json({
         message: 'Password reset email sent',
         details: 'Please check your email for password reset instructions',
@@ -487,6 +471,61 @@ router.post('/forgot-password', async (req, res) => {
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ message: 'Error processing password reset request' });
+  }
+});
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password, userType } = req.body;
+    console.log('Reset password request received:', { hasToken: !!token, hasPassword: !!password, userType });
+
+    if (!token || !password) {
+      console.log('Missing required fields:', { hasToken: !!token, hasPassword: !!password });
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+
+    // Find user by token and userType
+    const UserModel = userType === 'supervisor' ? Supervisor : User;
+    console.log('Looking for user with token:', token);
+
+    // Create query object for finding user
+    const query = {
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() }
+    };
+
+    const user = await UserModel.findOne(query);
+    console.log('User found:', user ? 'Yes' : 'No');
+
+    if (!user) {
+      console.log('No user found with token:', token);
+      // Check if token exists but is expired
+      const expiredUser = await UserModel.findOne({ resetToken: token });
+      if (expiredUser) {
+        console.log('Token exists but is expired');
+        return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' });
+      }
+      return res.status(400).json({ message: 'Invalid reset token' });
+    }
+
+    console.log('User found, resetting password');
+    // Handle different password field names for User and Supervisor
+    if (userType === 'supervisor') {
+      user.Password = password;
+    } else {
+      user.password = password;
+    }
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+
+    await user.save();
+    console.log('Password reset successful');
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Error resetting password' });
   }
 });
 

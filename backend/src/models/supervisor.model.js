@@ -13,7 +13,7 @@ const supervisorSchema = new mongoose.Schema({
         default: () => Math.floor(100000 + Math.random() * 900000), // Auto-generates 6-digit number
         unique: true
     },
-    SupervisorID: {
+    supervisorId: {
         type: Number,
         required: true,
         default: () => Math.floor(100000 + Math.random() * 900000), // Auto-generates 6-digit number
@@ -58,7 +58,12 @@ supervisorSchema.pre('save', async function(next) {
 
 // Method to compare password
 supervisorSchema.methods.comparePassword = async function(candidatePassword) {
-    return bcrypt.compare(candidatePassword, this.Password);
+    try {
+        return await bcrypt.compare(candidatePassword, this.Password);
+    } catch (error) {
+        console.error('Password comparison error:', error);
+        return false;
+    }
 };
 
 const Supervisor = mongoose.model('Supervisor', supervisorSchema);

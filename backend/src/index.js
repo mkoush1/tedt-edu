@@ -4,19 +4,18 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/user.js';
+import assessmentRoutes from './routes/assessmentRoutes.js';
 
 // Load environment variables
 dotenv.config();
 
-// Set default environment if not set
-if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development';
-  console.log('Setting NODE_ENV to development');
-}
-
-console.log('Current environment:', process.env.NODE_ENV);
+// Verify MongoDB URI
+console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Found' : 'Not Found');
 
 const app = express();
+
+// Middleware
+app.use(express.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -26,16 +25,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware
-app.use(express.json());
-
 // CORS configuration
 const corsOptions = {
-  origin: true, // Allow all origins in development
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  exposedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 };
 
 app.use(cors(corsOptions));
@@ -43,6 +38,43 @@ app.use(cors(corsOptions));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/assessments', assessmentRoutes);
+
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    if (!process.env.MONGODB_URI) {
+      console.warn('MongoDB URI is not defined in environment variables');
+      process.exit(1);
+    }
+
+    console.log('Attempting to connect to MongoDB...');
+    console.log('Using URI:', process.env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')); // Hide credentials in logs
+    
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`Database Name: ${conn.connection.name}`);
+    
+    // Verify connection by listing collections
+    const collections = await conn.connection.db.listCollections().toArray();
+    console.log('Available collections:', collections.map(c => c.name));
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    console.error('Error details:', {
+      name: error.name,
+      code: error.code,
+      codeName: error.codeName,
+      stack: error.stack
+    });
+    process.exit(1);
+  }
+};
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -50,10 +82,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Initialize database connection
+connectDB();
 
 // Start server
 const PORT = process.env.PORT || 5000;

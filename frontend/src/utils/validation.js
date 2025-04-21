@@ -4,26 +4,73 @@ export const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
-// Password validation regex
-// Password must contain:
-// - At least 8 characters
-// - At least one uppercase letter
-// - At least one lowercase letter
-// - At least one number
-// - At least one special character
+// Password validation
+export const validatePassword = (password) => {
+  if (!password) return 'Password is required';
+  if (password.length < 6) return 'Password must be at least 6 characters long';
+  return '';
+};
+
+// Password validation check
 export const isValidPassword = (password) => {
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  return passwordRegex.test(password);
+  return password && password.length >= 6;
+};
+
+// Name validation
+export const isValidName = (name) => {
+  return name && name.trim().length >= 2;
+};
+
+// Role validation
+export const validateRole = (role) => {
+  if (!role) return 'Role is required';
+  const validRoles = ['student', 'instructor', 'admin', 'supervisor'];
+  if (!validRoles.includes(role)) return 'Invalid role selected';
+  return '';
 };
 
 // Validation messages
 export const validationMessages = {
+  name: {
+    required: 'Name is required',
+    invalid: 'Name must be at least 2 characters long'
+  },
   email: {
     required: 'Email is required',
     invalid: 'Please enter a valid email address'
   },
   password: {
     required: 'Password is required',
-    invalid: 'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character'
+    invalid: 'Password must be at least 6 characters long'
+  },
+  role: {
+    required: 'Role is required',
+    invalid: 'Please select a valid role'
   }
+};
+
+// Form validation
+export const validateForm = (formData) => {
+  const errors = {};
+
+  if (!isValidName(formData.name)) {
+    errors.name = validationMessages.name.invalid;
+  }
+
+  if (!isValidEmail(formData.email)) {
+    errors.email = validationMessages.email.invalid;
+  }
+
+  if (!isValidPassword(formData.password)) {
+    errors.password = validationMessages.password.invalid;
+  }
+
+  if (formData.role && !isValidRole(formData.role)) {
+    errors.role = validationMessages.role.invalid;
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
 }; 

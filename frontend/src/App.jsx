@@ -1,20 +1,28 @@
 import "./App.css";
-import React from 'react';
-import { 
+import React from "react";
+import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate
-} from 'react-router-dom';
+  Navigate,
+} from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import SupervisorDashboard from "./pages/SupervisorDashboard";
 import UserDashboard from "./pages/UserDashboard";
-import PrivateRoute from './pages/PrivateRoute';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import PrivateRoute from "./pages/PrivateRoute";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import AssessmentDetails from "./pages/AssessmentDetails";
+import AssessmentQuiz from "./pages/AssessmentQuiz_leadership";
+import LeadershipRecommendations from "./pages/LeadershipRecommendations";
+import AboutUs from "./pages/AboutUs";
+import Features from "./pages/Features";
+import AssessmentsPage from "./pages/AssessmentsPage";
+import ProgressPage from "./pages/ProgressPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const App = () => {
   return (
@@ -28,6 +36,22 @@ const App = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/user-dashboard" element={<UserDashboard />} />
         <Route path="/supervisor-dashboard" element={<SupervisorDashboard />} />
+        <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/assessment/:id" element={<AssessmentDetails />} />
+        <Route
+          path="/assessment/quiz/leadership"
+          element={<AssessmentQuiz />}
+        />
+        <Route path="/assessment/leadership" element={<AssessmentQuiz />} />
+        <Route
+          path="/assessment/leadership/recommendations"
+          element={<LeadershipRecommendations />}
+        />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/assessments" element={<AssessmentsPage />} />
+        <Route path="/progress" element={<ProgressPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
