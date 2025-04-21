@@ -6,45 +6,54 @@ const HomePage = () => {
     <div className="min-h-screen flex flex-col bg-[#FDF8F8]">
       {/* Navbar */}
       <header className="bg-[#592538]">
-        <nav className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex justify-between items-center">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
             <div className="flex items-center space-x-3">
               <Link to="/">
                 <img
                   src="/eduSoft_logo.png"
                   alt="EduSoft Logo"
-                  className="h-10 w-auto"
+                  className="h-8 sm:h-10 w-auto"
                 />
               </Link>
               <Link to="/">
                 <img
                   src="/logo-02.png"
                   alt="ASPU Logo"
-                  className="h-10 w-auto"
+                  className="h-8 sm:h-10 w-auto"
                 />
               </Link>
             </div>
-            <div className="hidden md:flex items-center space-x-12">
-              <Link to="/" className="text-white text-xl font-normal">
+            <div className="hidden md:flex items-center space-x-8 lg:space-x-12">
+              <Link
+                to="/"
+                className="text-white text-lg lg:text-xl font-normal"
+              >
                 Home
               </Link>
-              <Link to="/features" className="text-white text-xl font-normal">
+              <Link
+                to="/features"
+                className="text-white text-lg lg:text-xl font-normal"
+              >
                 Features
               </Link>
-              <Link to="/about" className="text-white text-xl font-normal">
+              <Link
+                to="/about"
+                className="text-white text-lg lg:text-xl font-normal"
+              >
                 About us
               </Link>
             </div>
             <div className="flex items-center space-x-3">
               <Link
                 to="/login"
-                className="px-6 py-1.5 text-base font-medium rounded-lg bg-white text-[#592538] hover:bg-gray-50"
+                className="px-4 sm:px-6 py-1.5 text-sm sm:text-base font-medium rounded-lg bg-white text-[#592538] hover:bg-gray-50"
               >
                 Login
               </Link>
               <Link
                 to="/signup"
-                className="px-6 py-1.5 text-base font-medium rounded-lg bg-white text-[#592538] hover:bg-gray-50"
+                className="px-4 sm:px-6 py-1.5 text-sm sm:text-base font-medium rounded-lg bg-white text-[#592538] hover:bg-gray-50"
               >
                 Sign Up
               </Link>
@@ -54,20 +63,20 @@ const HomePage = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow px-8 lg:px-12">
-        <div className="max-w-7xl mx-auto py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+      <main className="flex-grow px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto py-8 sm:py-12 lg:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start">
             {/* Left Content */}
-            <div className="space-y-8 pt-12">
-              <div className="space-y-6">
-                <h1 className="text-[#592538] text-6xl font-bold leading-tight">
+            <div className="space-y-6 sm:space-y-8 pt-4 sm:pt-12">
+              <div className="space-y-4 sm:space-y-6">
+                <h1 className="text-[#592538] text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
                   Welcome to EduSoft
                 </h1>
-                <h2 className="text-[#592538] text-5xl font-bold leading-tight">
+                <h2 className="text-[#592538] text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
                   Your Personal Soft Skills Development Hub!
                 </h2>
               </div>
-              <p className="text-[#592538] text-xl leading-relaxed">
+              <p className="text-[#592538] text-lg sm:text-xl leading-relaxed">
                 At EduSoft, we are committed to empowering IT students with
                 essential soft skills that are crucial for success in the modern
                 workforce. Our platform offers a comprehensive,
@@ -78,7 +87,7 @@ const HomePage = () => {
               <div>
                 <Link
                   to="/signup"
-                  className="inline-block px-10 py-4 text-xl font-medium rounded-2xl bg-[#592538] text-white hover:bg-[#6d2c44] transition duration-300"
+                  className="inline-block px-6 sm:px-8 lg:px-10 py-3 sm:py-4 text-lg sm:text-xl font-medium rounded-xl sm:rounded-2xl bg-[#592538] text-white hover:bg-[#6d2c44] transition duration-300"
                 >
                   Let's Get Started!
                 </Link>
@@ -86,25 +95,25 @@ const HomePage = () => {
             </div>
 
             {/* Right Images */}
-            <div className="grid grid-cols-12 gap-4 pt-8">
-              <div className="col-span-7 space-y-4">
-                <div className="rounded-2xl overflow-hidden shadow-lg">
+            <div className="grid grid-cols-12 gap-3 sm:gap-4 pt-4 sm:pt-8">
+              <div className="col-span-7 space-y-3 sm:space-y-4">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg">
                   <img
                     src="/studying.png"
                     alt="Student studying"
-                    className="w-full h-[280px] object-cover"
+                    className="w-full h-[200px] sm:h-[280px] object-cover"
                   />
                 </div>
-                <div className="rounded-2xl overflow-hidden shadow-lg">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg">
                   <img
                     src="/professional-woman.png"
                     alt="Professional woman"
-                    className="w-full h-[280px] object-cover"
+                    className="w-full h-[200px] sm:h-[280px] object-cover"
                   />
                 </div>
               </div>
               <div className="col-span-5">
-                <div className="rounded-2xl overflow-hidden shadow-lg h-[580px]">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg h-[420px] sm:h-[580px]">
                   <img
                     src="/graduate.png"
                     alt="Graduate"
@@ -118,9 +127,9 @@ const HomePage = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white py-6">
-        <div className="max-w-7xl mx-auto px-8">
-          <p className="text-center text-[#592538]">
+      <footer className="bg-white py-4 sm:py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-[#592538] text-sm sm:text-base">
             © {new Date().getFullYear()} EduSoft. All rights reserved.
           </p>
         </div>

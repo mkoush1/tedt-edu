@@ -22,7 +22,7 @@ const ProgressPage = () => {
         // Decode token to get user ID
         const decodedToken = decodeJWT(token);
         if (!decodedToken || !decodedToken.userId) {
-          console.error('Invalid token or missing userId');
+          console.error("Invalid token or missing userId");
           navigate("/login");
           return;
         }
@@ -93,27 +93,33 @@ const ProgressPage = () => {
 
   return (
     <DashboardLayout title="Progress Overview">
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {/* Progress Stats */}
-        <div className="bg-white rounded-xl shadow-md p-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-[#592538]">Overall Progress</h2>
-              <span className="text-4xl font-bold text-[#592538]">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 lg:p-8">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-semibold text-[#592538]">
+                Overall Progress
+              </h2>
+              <span className="text-3xl sm:text-4xl font-bold text-[#592538]">
                 {Math.round((completedAssessments.length / 3) * 100)}%
               </span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-[#592538]">Completed Assessments</h2>
-              <span className="text-4xl font-bold text-[#592538]">
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-semibold text-[#592538]">
+                Completed Assessments
+              </h2>
+              <span className="text-3xl sm:text-4xl font-bold text-[#592538]">
                 {completedAssessments.length}
               </span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-[#592538]">Average Score</h2>
-              <span className="text-4xl font-bold text-[#592538]">
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-semibold text-[#592538]">
+                Average Score
+              </h2>
+              <span className="text-3xl sm:text-4xl font-bold text-[#592538]">
                 {calculateAverageScore()}%
               </span>
             </div>
@@ -121,48 +127,55 @@ const ProgressPage = () => {
         </div>
 
         {/* Assessment Progress */}
-        <div className="bg-white rounded-xl shadow-md p-8">
-          <h2 className="text-2xl font-semibold text-[#592538] mb-6">Assessment Progress</h2>
-          {completedAssessments.length === 0 ? (
-            <div className="text-center">
-              <div className="text-4xl mb-4">📝</div>
-              <h3 className="text-xl font-semibold text-[#592538] mb-2">
-                No assessments completed yet
-              </h3>
-              <p className="text-gray-600">
-                Start your learning journey by completing your first assessment!
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {completedAssessments.map((assessment) => (
-                <div
-                  key={assessment._id}
-                  className="border-b border-gray-200 pb-4"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-medium text-[#592538] capitalize">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 lg:p-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-[#592538] mb-4 sm:mb-6">
+            Assessment Progress
+          </h2>
+          <div className="space-y-4 sm:space-y-6">
+            {completedAssessments.map((assessment) => (
+              <div
+                key={assessment._id}
+                className="border rounded-lg p-4 sm:p-6 hover:shadow-md transition duration-300"
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-medium text-[#592538] capitalize">
                       {assessment.assessmentType} Assessment
                     </h3>
-                    <span className="text-gray-600">
+                    <p className="text-gray-600 text-sm sm:text-base">
                       {new Date(assessment.completedAt).toLocaleDateString()}
-                    </span>
+                    </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-[#592538] h-2.5 rounded-full"
-                        style={{ width: `${assessment.score}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      {Math.round(assessment.score)}%
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm sm:text-base ${
+                        assessment.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {assessment.status === "completed"
+                        ? "Completed"
+                        : "In Progress"}
                     </span>
+                    {assessment.score && (
+                      <span className="text-lg sm:text-xl font-semibold text-[#592538]">
+                        {Math.round(assessment.score)}%
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="mt-4">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-[#592538] h-2.5 rounded-full"
+                      style={{ width: `${assessment.progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </DashboardLayout>
