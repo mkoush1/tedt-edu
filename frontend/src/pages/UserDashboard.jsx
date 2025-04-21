@@ -48,7 +48,7 @@ const UserDashboard = () => {
       // Decode token to get user ID
       const decodedToken = decodeJWT(token);
       if (!decodedToken || !decodedToken.userId) {
-        console.error('Invalid token or missing userId');
+        console.error("Invalid token or missing userId");
         navigate("/login");
         return;
       }
@@ -81,7 +81,7 @@ const UserDashboard = () => {
       console.log("Status response:", statusResponse.data);
 
       const status = statusResponse.data.data;
-      
+
       // Update stats
       const newStats = [...stats];
       newStats[0].value = status.totalCompleted.toString(); // Completed Tests
@@ -90,9 +90,11 @@ const UserDashboard = () => {
       setStats(newStats);
 
       // Update assessments to show only available ones
-      const completedTypes = status.completedAssessments.map(a => a.assessmentType);
+      const completedTypes = status.completedAssessments.map(
+        (a) => a.assessmentType
+      );
       const availableAssessments = assessmentsResponse.data.filter(
-        assessment => !completedTypes.includes(assessment.category)
+        (assessment) => !completedTypes.includes(assessment.category)
       );
       setAssessments(availableAssessments);
 
@@ -110,16 +112,16 @@ const UserDashboard = () => {
 
     // Add event listener for storage changes
     const handleStorageChange = (e) => {
-      if (e.key === 'assessmentStatus') {
+      if (e.key === "assessmentStatus") {
         fetchDashboardData(); // Refresh dashboard data when assessment status changes
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     // Cleanup
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, [navigate]);
 
