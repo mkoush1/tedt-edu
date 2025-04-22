@@ -133,9 +133,22 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
       );
 
       if (response.data.success) {
-        // Wait a moment to ensure the backend has processed the submission
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        navigate('/assessment/recommendations');
+        // Update local storage with the new assessment status
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        if (userData) {
+          userData.completedAssessments = response.data.result.assessmentStatus.completedAssessments;
+          userData.totalAssessmentsCompleted = response.data.result.assessmentStatus.totalCompleted;
+          userData.progress = response.data.result.assessmentStatus.progress;
+          localStorage.setItem('userData', JSON.stringify(userData));
+        }
+
+        // Show success message
+        setError(null);
+        setPuzzle(prev => ({
+          ...prev,
+          isCompleted: true,
+          showWinMessage: true
+        }));
       } else {
         setError('Failed to submit assessment');
       }
@@ -255,17 +268,36 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
             <p className="text-gray-600 mb-4">
               Moves: {puzzle.moves} | Time: {timer}s
             </p>
+            <p className="text-gray-600 mb-4">
+              Score: {puzzle.score || 'Calculating...'}
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+              >
+                Back to Dashboard
+              </button>
+              <button
+                onClick={() => navigate('/assessment/recommendations')}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                View Recommendations
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="mt-6">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-          >
-            Back to Dashboard
-          </button>
-        </div>
+        {!puzzle?.isCompleted && (
+          <div className="mt-6">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
