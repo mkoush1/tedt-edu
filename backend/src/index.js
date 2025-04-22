@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/user.js';
 import assessmentRoutes from './routes/assessmentRoutes.js';
+import puzzleRoutes from './routes/puzzleRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +40,7 @@ app.use(cors(corsOptions));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/assessments', assessmentRoutes);
+app.use('/api/puzzle', puzzleRoutes);
 
 // Connect to MongoDB
 const connectDB = async () => {

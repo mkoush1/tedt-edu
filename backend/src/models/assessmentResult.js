@@ -9,53 +9,20 @@ const assessmentResultSchema = new mongoose.Schema({
   assessmentType: {
     type: String,
     required: true,
-    enum: ['leadership', 'technical', 'soft-skills'],
-    default: 'leadership'
-  },
-  answers: [{
-    questionNumber: {
-      type: Number,
-      required: true
-    },
-    score: {
-      type: Number,
-      required: true,
-      min: 1,
-      max: 5
-    }
-  }],
-  sectionScores: [{
-    section: {
-      type: String,
-      required: true
-    },
-    score: {
-      type: Number,
-      required: true
-    },
-    maxScore: {
-      type: Number,
-      required: true
-    }
-  }],
-  totalScore: {
-    type: Number,
-    required: true
-  },
-  maxTotalScore: {
-    type: Number,
-    required: true
-  },
-  percentage: {
-    type: Number,
-    required: true
+    enum: ['leadership', 'puzzle-game', 'fast-questions', 'codeforces'],
   },
   completedAt: {
     type: Date,
     default: Date.now
+  },
+  score: {
+    type: Number,
+    required: true
+  },
+  details: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
-}, {
-  timestamps: true
 });
 
 // Index for efficient querying

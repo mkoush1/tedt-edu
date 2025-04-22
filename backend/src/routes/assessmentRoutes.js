@@ -3,10 +3,36 @@ import Assessment from '../models/Assessment.js';
 import TestQuestion from '../models/TestQuestion.js';
 import LeadershipQuestion from '../models/leadership_testBank.js';
 import AssessmentResult from '../models/AssessmentResult.js';
-import { verifyToken } from './auth.js';
+import { authenticateToken } from '../middleware/auth.js';
 import User from '../models/User.js';
+import ProblemSolvingAssessment from '../models/ProblemSolvingAssessment.js';
+import Puzzle from '../models/Puzzle.js';
 
 const router = express.Router();
+
+// Helper function to generate a solvable puzzle
+const generatePuzzle = (size = 3) => {
+  try {
+    console.log('Generating puzzle with size:', size);
+    const numbers = Array.from({ length: size * size - 1 }, (_, i) => i + 1);
+    const shuffled = numbers.sort(() => Math.random() - 0.5);
+    const grid = [];
+    
+    for (let i = 0; i < size; i++) {
+      grid[i] = [];
+      for (let j = 0; j < size; j++) {
+        const index = i * size + j;
+        grid[i][j] = index < shuffled.length ? shuffled[index] : 0;
+      }
+    }
+    
+    console.log('Generated puzzle grid:', grid);
+    return grid;
+  } catch (error) {
+    console.error('Error generating puzzle:', error);
+    throw error;
+  }
+};
 
 // Get all assessments
 router.get('/', async (req, res) => {
@@ -87,7 +113,7 @@ router.post('/init', async (req, res) => {
 });
 
 // Get all questions for a specific assessment type
-router.get('/questions/:assessmentType', verifyToken, async (req, res) => {
+router.get('/questions/:assessmentType', authenticateToken, async (req, res) => {
   try {
     const { assessmentType } = req.params;
     const questions = await TestQuestion.find({ assessmentType })
@@ -100,7 +126,7 @@ router.get('/questions/:assessmentType', verifyToken, async (req, res) => {
 });
 
 // Submit assessment results
-router.post('/submit', verifyToken, async (req, res) => {
+router.post('/submit', authenticateToken, async (req, res) => {
   try {
     const { assessmentType, answers } = req.body;
     const userId = req.userId;
@@ -167,7 +193,7 @@ router.post('/submit', verifyToken, async (req, res) => {
 });
 
 // Get user's assessment results
-router.get('/results/:assessmentType', verifyToken, async (req, res) => {
+router.get('/results/:assessmentType', authenticateToken, async (req, res) => {
   try {
     const { assessmentType } = req.params;
     const userId = req.userId;
@@ -184,7 +210,7 @@ router.get('/results/:assessmentType', verifyToken, async (req, res) => {
 });
 
 // Start leadership assessment
-router.post('/start/leadership', verifyToken, async (req, res) => {
+router.post('/start/leadership', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
 
@@ -213,7 +239,7 @@ router.post('/start/leadership', verifyToken, async (req, res) => {
 });
 
 // Submit leadership assessment
-router.post('/submit/leadership', verifyToken, async (req, res) => {
+router.post('/submit/leadership', authenticateToken, async (req, res) => {
   try {
     const { answers } = req.body;
     const userId = req.userId;
@@ -281,7 +307,8 @@ router.post('/submit/leadership', verifyToken, async (req, res) => {
       totalScore,
       maxTotalScore,
       percentage,
-      completedAt: new Date()
+      completedAt: new Date(),
+      score: percentage
     });
 
     await assessmentResult.save();
@@ -355,7 +382,7 @@ router.post('/submit/leadership', verifyToken, async (req, res) => {
 });
 
 // Get user's completed assessments
-router.get('/results/completed', verifyToken, async (req, res) => {
+router.get('/results/completed', authenticateToken, async (req, res) => {
   try {
     const userId = req.userId;
     console.log('Fetching completed assessments for user:', userId); // Debug log
@@ -394,7 +421,7 @@ router.get('/results/completed', verifyToken, async (req, res) => {
 });
 
 // Get user's assessment status
-router.get('/status/:userId', verifyToken, async (req, res) => {
+router.get('/status/:userId', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.userId;
     console.log('Getting assessment status for user:', userId);
@@ -440,6 +467,169 @@ router.get('/status/:userId', verifyToken, async (req, res) => {
       success: false,
       error: 'Failed to get assessment status'
     });
+  }
+});
+
+// Start puzzle game assessment
+router.post('/start/puzzle-game', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.userId;
+    console.log('Starting puzzle game assessment for user:', userId);
+
+    // Check if user has already completed the assessment
+    const existingResult = await AssessmentResult.findOne({
+      userId,
+      assessmentType: 'puzzle-game'
+    });
+
+    if (existingResult) {
+      console.log('User has already completed the assessment');
+      return res.status(400).json({ message: 'You have already completed this assessment' });
+    }
+
+    // Check if there's an in-progress assessment
+    const existingAssessment = await ProblemSolvingAssessment.findOne({
+      userId,
+      assessmentType: 'puzzle-game',
+      status: 'in-progress'
+    });
+
+    if (existingAssessment) {
+      console.log('Found existing in-progress assessment');
+      // Get the associated puzzle
+      const puzzle = await Puzzle.findOne({
+        userId,
+        _id: existingAssessment.puzzleGame.puzzles[0]?.puzzleId
+      });
+
+      if (puzzle) {
+        return res.json({ 
+          success: true, 
+          data: {
+            assessment: existingAssessment,
+            puzzle
+          }
+        });
+      }
+    }
+
+    // Create a new puzzle game assessment
+    const assessment = new ProblemSolvingAssessment({
+      userId,
+      assessmentType: 'puzzle-game',
+      status: 'in-progress',
+      startedAt: new Date(),
+      maxOverallScore: 100,
+      fastQuestions: {
+        maxScore: 0,
+        totalScore: 0,
+        timeTaken: 0,
+        questions: []
+      },
+      puzzleGame: {
+        maxScore: 100,
+        puzzles: []
+      },
+      codeforces: {
+        handle: 'not-linked',
+        rating: 0,
+        solvedProblems: 0,
+        contests: [],
+        lastUpdated: new Date()
+      }
+    });
+
+    console.log('Saving assessment:', assessment);
+    await assessment.save();
+    console.log('Assessment saved successfully');
+
+    // Generate initial puzzle state
+    const initialState = generatePuzzle(3);
+    console.log('Generated initial puzzle state:', initialState);
+    
+    // Start a new puzzle game
+    const puzzle = new Puzzle({
+      userId,
+      size: 3,
+      initialState,
+      currentState: JSON.parse(JSON.stringify(initialState)),
+      moves: 0,
+      timeSpent: 0
+    });
+
+    console.log('Saving puzzle:', puzzle);
+    await puzzle.save();
+    console.log('Puzzle saved successfully');
+
+    // Update assessment with puzzle ID
+    assessment.puzzleGame.puzzles.push({
+      puzzleId: puzzle._id,
+      difficulty: 'medium',
+      moves: 0,
+      timeTaken: 0,
+      completed: false
+    });
+    await assessment.save();
+
+    res.json({ 
+      success: true, 
+      data: {
+        assessment,
+        puzzle
+      }
+    });
+  } catch (error) {
+    console.error('Error starting puzzle game assessment:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+    res.status(500).json({ 
+      message: 'Error starting assessment', 
+      error: error.message,
+      details: error.stack
+    });
+  }
+});
+
+// Submit puzzle game assessment
+router.post('/submit/puzzle-game', authenticateToken, async (req, res) => {
+  try {
+    const { answers } = req.body;
+    const userId = req.userId;
+
+    // Create new assessment result
+    const assessmentResult = new AssessmentResult({
+      userId,
+      assessmentType: 'puzzle-game',
+      answers,
+      completedAt: new Date()
+    });
+
+    await assessmentResult.save();
+
+    // Update user's assessment status
+    const user = await User.findById(userId);
+    if (!user.completedAssessments) {
+      user.completedAssessments = [];
+    }
+    user.completedAssessments.push({
+      assessmentType: 'puzzle-game',
+      completedAt: new Date()
+    });
+    user.totalAssessmentsCompleted = user.completedAssessments.length;
+    user.progress = (user.totalAssessmentsCompleted / 6) * 100; // Assuming 6 total assessments
+    await user.save();
+
+    res.json({
+      message: 'Puzzle game assessment submitted successfully',
+      result: assessmentResult
+    });
+  } catch (error) {
+    console.error('Error submitting puzzle game assessment:', error);
+    res.status(500).json({ message: 'Error submitting assessment', error: error.message });
   }
 });
 

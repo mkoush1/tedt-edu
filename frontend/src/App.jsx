@@ -23,6 +23,8 @@ import Features from "./pages/Features";
 import AssessmentsPage from "./pages/AssessmentsPage";
 import ProgressPage from "./pages/ProgressPage";
 import SettingsPage from "./pages/SettingsPage";
+import ProblemSolvingAssessment from "./pages/ProblemSolvingAssessment";
+import PuzzleGameAssessment from "./pages/PuzzleGameAssessment";
 
 const App = () => {
   return (
@@ -38,6 +40,8 @@ const App = () => {
         <Route path="/supervisor-dashboard" element={<SupervisorDashboard />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/assessment/:id" element={<AssessmentDetails />} />
+        <Route path="/assessment/problem-solving" element={<ProblemSolvingAssessment />} />
+        <Route path="/assessment/puzzle-game" element={<PuzzleGameAssessment />} />
         <Route
           path="/assessment/quiz/leadership"
           element={<AssessmentQuiz />}

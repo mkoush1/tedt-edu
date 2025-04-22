@@ -5,7 +5,15 @@ const AssessmentCard = ({ assessment }) => {
   const navigate = useNavigate();
 
   const handleAssessmentStart = () => {
-    navigate(`/assessment/${assessment._id}`);
+    if (assessment.category === "Problem Solving") {
+      if (assessment._id === "puzzle-game") {
+        navigate("/assessment/puzzle-game");
+      } else {
+        navigate("/assessment/problem-solving");
+      }
+    } else {
+      navigate(`/assessment/${assessment._id}`);
+    }
   };
 
   return (
