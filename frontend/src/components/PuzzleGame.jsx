@@ -10,6 +10,7 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
   const [timer, setTimer] = useState(0);
   const [timerInterval, setTimerInterval] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
+  const TIME_LIMIT = 4 * 60; // 4 minutes in seconds
 
   useEffect(() => {
     startTimer();
@@ -17,6 +18,14 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
       if (timerInterval) clearInterval(timerInterval);
     };
   }, []);
+
+  // Check time limit
+  useEffect(() => {
+    if (timer >= TIME_LIMIT && !puzzle?.isCompleted) {
+      clearInterval(timerInterval);
+      submitAssessment(puzzle);
+    }
+  }, [timer, puzzle]);
 
   // Update valid moves whenever puzzle state changes
   useEffect(() => {
@@ -142,13 +151,17 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
           localStorage.setItem('userData', JSON.stringify(userData));
         }
 
-        // Show success message
-        setError(null);
+        // Update puzzle state with score and rating
         setPuzzle(prev => ({
           ...prev,
           isCompleted: true,
-          showWinMessage: true
+          score: response.data.result.score,
+          rating: response.data.result.rating,
+          completionTime: response.data.result.completionTime
         }));
+
+        // Show success message
+        setError(null);
       } else {
         setError('Failed to submit assessment');
       }
@@ -231,7 +244,13 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Slide Puzzle</h1>
           <div className="text-gray-600">
-            Moves: {puzzle?.moves} | Time: {timer}s
+            <div>Moves: {puzzle?.moves}</div>
+            <div className={`${timer >= TIME_LIMIT - 30 ? 'text-red-500' : ''}`}>
+              Time: {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
+            </div>
+            <div className="text-sm text-gray-500">
+              Time Limit: 4:00
+            </div>
           </div>
         </div>
 
@@ -250,9 +269,9 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
                 className={`w-20 h-20 flex items-center justify-center text-2xl font-bold rounded-lg
                   ${cell === 0 ? 'bg-transparent' : 'bg-white hover:bg-gray-100'}
                   ${validMoves.includes(`${i},${j}`) ? 'ring-2 ring-blue-500' : ''}
-                  ${puzzle.isCompleted ? 'cursor-default' : 'cursor-pointer'}`}
-                onClick={() => !puzzle.isCompleted && makeMove(i, j)}
-                disabled={cell === 0 || puzzle.isCompleted}
+                  ${puzzle.isCompleted || timer >= TIME_LIMIT ? 'cursor-default' : 'cursor-pointer'}`}
+                onClick={() => !puzzle.isCompleted && timer < TIME_LIMIT && makeMove(i, j)}
+                disabled={cell === 0 || puzzle.isCompleted || timer >= TIME_LIMIT}
               >
                 {cell !== 0 && cell}
               </button>
@@ -262,14 +281,28 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
 
         {puzzle?.isCompleted && (
           <div className="mt-6 text-center">
-            <p className="text-xl font-bold text-green-600 mb-4">
-              Congratulations! You solved the puzzle!
-            </p>
+            {puzzle.score === 100 ? (
+              <div className="mb-6">
+                <div className="text-3xl font-bold text-yellow-500 mb-4">🎉 Congratulations! 🎉</div>
+                <div className="text-xl text-green-600 mb-2">You achieved a perfect score!</div>
+                <div className="text-gray-600 mb-4">You're a puzzle master!</div>
+              </div>
+            ) : (
+              <p className="text-xl font-bold text-green-600 mb-4">
+                You can do better!
+              </p>
+            )}
             <p className="text-gray-600 mb-4">
-              Moves: {puzzle.moves} | Time: {timer}s
+              Moves: {puzzle.moves} | Time: {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
             </p>
             <p className="text-gray-600 mb-4">
               Score: {puzzle.score || 'Calculating...'}
+            </p>
+            <p className="text-gray-600 mb-4">
+              Rating: {puzzle.rating || 'Calculating...'}
+            </p>
+            <p className="text-gray-600 mb-4">
+              Completion Time: {puzzle.completionTime || (timer / 60).toFixed(2)} minutes
             </p>
             <div className="flex justify-center space-x-4">
               <button
@@ -288,7 +321,32 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
           </div>
         )}
 
-        {!puzzle?.isCompleted && (
+        {timer >= TIME_LIMIT && !puzzle?.isCompleted && (
+          <div className="mt-6 text-center">
+            <p className="text-xl font-bold text-red-600 mb-4">
+              Time's Up!
+            </p>
+            <p className="text-gray-600 mb-4">
+              You've reached the 4-minute time limit.
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+              >
+                Back to Dashboard
+              </button>
+              <button
+                onClick={() => navigate('/assessment/recommendations')}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                View Results
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!puzzle?.isCompleted && timer < TIME_LIMIT && (
           <div className="mt-6">
             <button
               onClick={() => navigate('/dashboard')}

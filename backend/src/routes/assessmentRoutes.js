@@ -610,6 +610,7 @@ router.post('/submit/puzzle-game', authenticateToken, async (req, res) => {
     let totalMoves = 0;
     let totalTime = 0;
     let completedPuzzles = 0;
+    let rating = '';
 
     puzzleData.forEach(puzzle => {
       if (puzzle.completed) {
@@ -619,39 +620,28 @@ router.post('/submit/puzzle-game', authenticateToken, async (req, res) => {
       }
     });
 
-    // Calculate score based on completion rate and efficiency
-    const completionRate = completedPuzzles / puzzleData.length;
-    const averageMoves = totalMoves / completedPuzzles;
-    const averageTime = totalTime / completedPuzzles;
+    // Calculate score based on completion time
+    const completionTime = totalTime / 60; // Convert to minutes
+    if (completionTime <= 1) {
+      totalScore = 100;
+      rating = 'Excellent';
+    } else if (completionTime <= 2) {
+      totalScore = 85;
+      rating = 'Very Good';
+    } else if (completionTime <= 3) {
+      totalScore = 70;
+      rating = 'Good';
+    } else if (completionTime <= 4) {
+      totalScore = 50;
+      rating = 'Fair';
+    } else {
+      totalScore = 30;
+      rating = 'Poor';
+    }
 
-    // Base score on completion rate (70%) and efficiency (30%)
-    totalScore = Math.round(
-      (completionRate * 70) + 
-      ((1 - (averageMoves / 100)) * 15) + // Moves efficiency
-      ((1 - (averageTime / 300)) * 15)    // Time efficiency
-    );
-
-    // Ensure score is within bounds
-    totalScore = Math.max(0, Math.min(100, totalScore));
-
-    // Create new assessment result
-    const assessmentResult = new AssessmentResult({
-      userId,
-      assessmentType: 'puzzle-game',
-      score: totalScore,
-      maxScore,
-      completedAt: new Date(),
-      details: {
-        completedPuzzles,
-        totalPuzzles: puzzleData.length,
-        totalMoves,
-        totalTime,
-        averageMoves,
-        averageTime
-      }
-    });
-
-    await assessmentResult.save();
+    // Adjust score based on moves efficiency
+    const movesPenalty = Math.min(20, Math.floor(totalMoves / 10));
+    totalScore = Math.max(0, totalScore - movesPenalty);
 
     // Update user's assessment status
     const user = await User.findById(userId);
@@ -673,14 +663,16 @@ router.post('/submit/puzzle-game', authenticateToken, async (req, res) => {
       user.completedAssessments[existingAssessmentIndex] = {
         assessmentType: 'puzzle-game',
         completedAt: new Date(),
-        score: totalScore
+        score: totalScore,
+        rating: rating
       };
     } else {
       // Add new completion
       user.completedAssessments.push({
         assessmentType: 'puzzle-game',
         completedAt: new Date(),
-        score: totalScore
+        score: totalScore,
+        rating: rating
       });
       user.totalAssessmentsCompleted += 1;
     }
@@ -690,6 +682,26 @@ router.post('/submit/puzzle-game', authenticateToken, async (req, res) => {
     user.progress = Math.min(100, (user.totalAssessmentsCompleted / totalAssessments) * 100);
     
     await user.save();
+
+    // Create new assessment result
+    const assessmentResult = new AssessmentResult({
+      userId,
+      assessmentType: 'puzzle-game',
+      score: totalScore,
+      maxScore,
+      completedAt: new Date(),
+      rating: rating,
+      details: {
+        completedPuzzles,
+        totalPuzzles: puzzleData.length,
+        totalMoves,
+        totalTime,
+        completionTime: completionTime.toFixed(2),
+        rating: rating
+      }
+    });
+
+    await assessmentResult.save();
 
     // Update the assessment status to completed
     await ProblemSolvingAssessment.findOneAndUpdate(
@@ -714,8 +726,8 @@ router.post('/submit/puzzle-game', authenticateToken, async (req, res) => {
         totalPuzzles: puzzleData.length,
         totalMoves,
         totalTime,
-        averageMoves,
-        averageTime,
+        completionTime: completionTime.toFixed(2),
+        rating: rating,
         assessmentStatus: {
           availableAssessments: remainingAssessments,
           completedAssessments: user.completedAssessments,
