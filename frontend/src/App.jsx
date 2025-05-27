@@ -25,6 +25,11 @@ import ProgressPage from "./pages/ProgressPage";
 import SettingsPage from "./pages/SettingsPage";
 import ProblemSolvingAssessment from "./pages/ProblemSolvingAssessment";
 import PuzzleGameAssessment from "./pages/PuzzleGameAssessment";
+import CommunicationAssessment from "./pages/CommunicationAssessment";
+import LanguageAssessment from "./pages/LanguageAssessment";
+import SpeakingAssessmentReview from "./components/supervisor/SpeakingAssessmentReview";
+import UserAssessments from "./pages/UserAssessments";
+import CloudinaryTest from "./components/tests/CloudinaryTest";
 
 const App = () => {
   return (
@@ -42,6 +47,8 @@ const App = () => {
         <Route path="/assessment/:id" element={<AssessmentDetails />} />
         <Route path="/assessment/problem-solving" element={<ProblemSolvingAssessment />} />
         <Route path="/assessment/puzzle-game" element={<PuzzleGameAssessment />} />
+        <Route path="/assessment/communication" element={<CommunicationAssessment />} />
+        <Route path="/language-assessment" element={<LanguageAssessment />} />
         <Route
           path="/assessment/quiz/leadership"
           element={<AssessmentQuiz />}
@@ -54,8 +61,11 @@ const App = () => {
         <Route path="/about" element={<AboutUs />} />
         <Route path="/features" element={<Features />} />
         <Route path="/assessments" element={<AssessmentsPage />} />
+        <Route path="/my-assessments" element={<UserAssessments />} />
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/cloudinary-test" element={<CloudinaryTest />} />
+        <Route path="/supervisor/speaking-review" element={<SpeakingAssessmentReview />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

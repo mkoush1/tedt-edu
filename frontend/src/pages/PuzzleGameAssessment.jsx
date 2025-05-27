@@ -22,7 +22,7 @@ const PuzzleGameAssessment = () => {
 
         // Start the assessment
         const response = await axios.post(
-          "http://localhost:5000/api/assessments/start/puzzle-game",
+          "http://localhost:5001/api/assessments/start/puzzle-game",
           {},
           {
             headers: {

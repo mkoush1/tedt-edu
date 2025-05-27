@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
-import axios from "axios";
+import api from "../services/api";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -25,15 +25,12 @@ const SettingsPage = () => {
           return;
         }
 
-        const response = await axios.get(
-          "http://localhost:5000/api/users/profile",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const response = await api.get("/users/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         setUserData((prev) => ({
           ...prev,
@@ -84,7 +81,7 @@ const SettingsPage = () => {
         updateData.newPassword = userData.newPassword;
       }
 
-      await axios.put("http://localhost:5000/api/users/profile", updateData, {
+      await api.put("/users/profile", updateData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

@@ -8,20 +8,24 @@ const assessmentResultSchema = new mongoose.Schema({
   },
   assessmentType: {
     type: String,
-    required: true,
-    enum: ['leadership', 'puzzle-game', 'fast-questions', 'codeforces'],
+    required: true
   },
+  answers: [{
+    questionNumber: Number,
+    answer: mongoose.Schema.Types.Mixed,
+    score: Number
+  }],
+  sectionScores: [{
+    section: String,
+    score: Number,
+    maxScore: Number
+  }],
+  totalScore: Number,
+  maxTotalScore: Number,
+  percentage: Number,
   completedAt: {
     type: Date,
     default: Date.now
-  },
-  score: {
-    type: Number,
-    required: true
-  },
-  details: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
   }
 });
 

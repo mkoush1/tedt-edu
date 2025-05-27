@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from "../services/api"; // Import the API service
 // import '../styles/AssessmentDetails.css';
 
 const AssessmentDetails = () => {
@@ -11,11 +12,8 @@ const AssessmentDetails = () => {
   useEffect(() => {
     const fetchAssessment = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/assessments/${id}`
-        );
-        const data = await response.json();
-        setAssessment(data);
+        const response = await api.get(`/assessments/${id}`);
+        setAssessment(response.data);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching assessment:", error);

@@ -90,7 +90,7 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `http://localhost:5000/api/puzzle/${puzzle._id}/move`,
+        `http://localhost:5001/api/puzzle/${puzzle._id}/move`,
         { row, col },
         {
           headers: {
@@ -123,7 +123,7 @@ const PuzzleGame = ({ initialPuzzle, assessmentId }) => {
       const token = localStorage.getItem('token');
 
       const response = await axios.post(
-        'http://localhost:5000/api/assessments/submit/puzzle-game',
+        'http://localhost:5001/api/assessments/submit/puzzle-game',
         {
           puzzleData: [{
             puzzleId: completedPuzzle._id,

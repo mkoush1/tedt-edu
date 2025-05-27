@@ -26,7 +26,7 @@ const AssessmentQuiz = () => {
         }
 
         const response = await axios.post(
-          "http://localhost:5000/api/assessments/start/leadership",
+          "http://localhost:5001/api/assessments/start/leadership",
           {},
           {
             headers: {
@@ -120,7 +120,7 @@ const AssessmentQuiz = () => {
       console.log("Submitting answers:", formattedAnswers);
       
       const response = await axios.post(
-        "http://localhost:5000/api/assessments/submit/leadership",
+        "http://localhost:5001/api/assessments/submit/leadership",
         {
           answers: formattedAnswers
         },
